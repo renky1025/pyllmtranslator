@@ -1,0 +1,52 @@
+# 默认配置文件
+
+# LLM设置
+llm:
+  provider: openai  # 可选: openai, ollama
+  model: gpt-4o-mini
+  api_key_name: default
+  temperature: 0.1
+  max_tokens: 2000
+  timeout: 60
+  max_retries: 3
+  
+  # Ollama特定设置
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "llama3.2"  # 默认Ollama模型
+    timeout: 120  # Ollama可能需要更长时间
+
+# 翻译设置
+translate:
+  chunk_max_chars: 2000
+  chunk_max_tokens: 1000
+  prefer_boundary: ["paragraph", "sentence"]
+  preserve_structure: true
+  concurrent_files: 3
+
+# UI设置
+ui:
+  last_opened_dir: ""
+  window_geometry: [100, 100, 1200, 800]
+  theme: "default"
+
+# 支持的文件类型
+supported_files:
+  - .txt
+  - .md
+  - .rst
+  - .py
+  - .js
+  - .html
+  - .xml
+  - .json
+
+# 默认语言映射
+languages:
+  中文: "Chinese"
+  英文: "English"
+  日文: "Japanese"
+  韩文: "Korean"
+  法文: "French"
+  德文: "German"
+  西班牙文: "Spanish"

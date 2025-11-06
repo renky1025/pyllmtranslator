@@ -122,10 +122,11 @@ class MainWindow(QMainWindow):
         
         # 设置表格列宽
         header = self.files_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # 文件名
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 大小
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # 状态
-        header.setSectionResizeMode(3, QHeaderView.Stretch)  # 路径
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # 文件名
+            header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 大小
+            header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # 状态
+            header.setSectionResizeMode(3, QHeaderView.Stretch)  # 路径
         
         layout.addWidget(self.files_table)
         
@@ -187,7 +188,7 @@ class MainWindow(QMainWindow):
         provider_layout = QHBoxLayout()
         provider_layout.addWidget(QLabel("提供商:"))
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(["OpenAI", "Ollama"])
+        self.provider_combo.addItems(["Ollama", "OpenAI"])
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
         provider_layout.addWidget(self.provider_combo)
         provider_layout.addStretch()
@@ -238,8 +239,8 @@ class MainWindow(QMainWindow):
         
         llm_layout.addWidget(self.ollama_group)
         
-        # 初始化提供商设置
-        self.on_provider_changed("OpenAI")
+        # 初始化提供商设置为Ollama
+        self.on_provider_changed("Ollama")
         
         layout.addWidget(llm_group)
         
@@ -427,20 +428,26 @@ class MainWindow(QMainWindow):
                 if current_model in models:
                     self.model_combo.setCurrentText(current_model)
                 
-                self.add_log_message(f"已刷新Ollama模型列表，找到 {len(models)} 个模型")
+                # 检查log_text是否存在，避免在初始化时出错
+                if hasattr(self, 'log_text') and self.log_text is not None:
+                    self.add_log_message(f"已刷新Ollama模型列表，找到 {len(models)} 个模型")
             else:
-                self.add_log_message("未找到可用的Ollama模型")
+                if hasattr(self, 'log_text') and self.log_text is not None:
+                    self.add_log_message("未找到可用的Ollama模型")
                 
         except Exception as e:
-            self.add_log_message(f"刷新Ollama模型列表失败: {str(e)}")
+            if hasattr(self, 'log_text') and self.log_text is not None:
+                self.add_log_message(f"刷新Ollama模型列表失败: {str(e)}")
             
     def start_translation(self):
         """开始翻译"""
         # 获取文件列表
         files = []
         for row in range(self.files_table.rowCount()):
-            file_path = self.files_table.item(row, 3).text()
-            files.append(Path(file_path))
+            item = self.files_table.item(row, 3)
+            if item is not None:
+                file_path = item.text()
+                files.append(Path(file_path))
             
         if not files:
             QMessageBox.warning(self, "警告", "请先选择要翻译的文件")
@@ -508,7 +515,8 @@ class MainWindow(QMainWindow):
     def update_file_status(self, file_path, status):
         """更新文件状态"""
         for row in range(self.files_table.rowCount()):
-            if self.files_table.item(row, 3).text() == str(file_path):
+            item = self.files_table.item(row, 3)
+            if item is not None and item.text() == str(file_path):
                 self.files_table.setItem(row, 2, QTableWidgetItem(status))
                 break
                 

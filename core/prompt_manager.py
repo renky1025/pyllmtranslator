@@ -24,57 +24,51 @@ class PromptManager:
     def _init_default_templates(self):
         """初始化默认Prompt模板"""
         default_templates = {
-            "通用翻译": """你是一个专业的翻译专家。请将以下{source_lang}文本翻译成{target_lang}。
+            "通用翻译": """你是专业的翻译专家，请将下方<SOURCE_TEXT>中的{source_lang}内容译为{target_lang}。
 
-要求：
-1. 保持原文的格式和结构
-2. 保留代码块、标记语言标签等特殊格式
-3. 翻译要准确、流畅、符合目标语言习惯
-4. 不要添加任何解释或注释
+严格要求：
+1. 只输出译文本身，不要添加任何额外文字、前后缀或标签（例如“Translation:”“译文：”等）。
+2. 保持原文的格式和结构（包括换行、缩进、列表、标记、代码块等）。
+3. 如果遇到代码、标记语言或内联标记，请保留其结构并仅翻译注释或自然语言部分（若不确定，则完整保留原样）。
+4. 不得解释、总结、润色说明，不得加入任何与译文无关的内容。
 
-原文：
+<SOURCE_TEXT>
 {text}
-
-翻译：""",
+</SOURCE_TEXT>""",
             
-            "技术文档翻译": """你是一个专业的技术文档翻译专家。请将以下{source_lang}技术文档翻译成{target_lang}。
+            "技术文档翻译": """你是专业的技术文档译者，请将下方<SOURCE_TEXT>中的{source_lang}技术文本译为{target_lang}。
 
-要求：
-1. 保持所有Markdown格式、代码块、链接等
-2. 技术术语要准确，保持一致性
-3. 代码注释也需要翻译
-4. 保持专业性和准确性
+严格要求：
+1. 保持Markdown/标记语法、标题、列表、表格、链接、代码块等的结构与格式。
+2. 术语统一、准确；变量名、函数名、路径、命令等保持原样；注释与说明自然流畅。
+3. 代码仅在注释中翻译自然语言，不改动代码逻辑与标识符。
+4. 只输出译文本身，不要任何额外文字、标签或前后缀。
 
-原文：
+<SOURCE_TEXT>
 {text}
-
-翻译：""",
+</SOURCE_TEXT>""",
             
-            "文学翻译": """你是一个专业的文学翻译家。请将以下{source_lang}文本翻译成{target_lang}。
+            "文学翻译": """你是专业的文学译者，请将下方<SOURCE_TEXT>中的{source_lang}内容译为{target_lang}。
 
-要求：
-1. 保持原文的文学风格和语调
-2. 注重语言的优美和流畅
-3. 保持情感表达的准确性
-4. 适当考虑文化背景差异
+严格要求：
+1. 保持原文的文体、语气与节奏；忠实传达情感与意象。
+2. 保持段落与换行结构，避免随意合并或拆分。
+3. 只输出译文本身，不要任何额外文字、标签或前后缀。
 
-原文：
+<SOURCE_TEXT>
 {text}
-
-翻译：""",
+</SOURCE_TEXT>""",
             
-            "商务翻译": """你是一个专业的商务翻译专家。请将以下{source_lang}商务文本翻译成{target_lang}。
+            "商务翻译": """你是专业的商务译者，请将下方<SOURCE_TEXT>中的{source_lang}内容译为{target_lang}。
 
-要求：
-1. 使用正式、专业的商务语言
-2. 保持礼貌和尊重的语调
-3. 确保术语的准确性
-4. 符合商务沟通习惯
+严格要求：
+1. 用词正式、准确、礼貌；符合商务沟通习惯。
+2. 保持条款、列表、编号、表格等的结构与层级。
+3. 只输出译文本身，不要任何额外文字、标签或前后缀。
 
-原文：
+<SOURCE_TEXT>
 {text}
-
-翻译："""
+</SOURCE_TEXT>"""
         }
         
         # 如果配置文件不存在，创建默认配置
@@ -120,13 +114,19 @@ class PromptManager:
     
     def format_prompt(self, template: str, source_lang: str, 
                      target_lang: str, text: str) -> str:
-        """格式化Prompt模板"""
+        """格式化Prompt模板，使用安全边界包裹原文，避免特殊字符破坏结构"""
         try:
+            # 使用极少出现的包裹标签，降低与原文冲突概率
+            # 同时避免在模板中出现格式化歧义
+            safe_text = text
             return template.format(
                 source_lang=source_lang,
                 target_lang=target_lang,
-                text=text
+                text=safe_text
             )
         except Exception as e:
             print(f"格式化Prompt失败: {e}")
-            return f"请将以下{source_lang}文本翻译成{target_lang}：\n\n{text}"
+            return (
+                "你是专业的翻译专家。只输出译文，不要任何多余内容。\n\n"
+                f"<SOURCE_TEXT>\n{text}\n</SOURCE_TEXT>"
+            )

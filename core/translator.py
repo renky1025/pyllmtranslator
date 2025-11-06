@@ -77,7 +77,8 @@ class TranslationManager:
                 translated_chunk = self.llm_client.translate(formatted_prompt)
                 
                 if translated_chunk:
-                    translated_chunks.append(translated_chunk)
+                    cleaned = self._sanitize_output(translated_chunk)
+                    translated_chunks.append(cleaned)
                     # 添加延迟避免API限制
                     time.sleep(0.5)
                 else:
@@ -141,7 +142,7 @@ class TranslationManager:
         Returns:
             LLM客户端实例
         """
-        provider = config.get('provider', 'openai').lower()
+        provider = config.get('provider', 'ollama').lower()
         
         if provider == 'ollama':
             self.logger.info("使用Ollama本地模型")
@@ -164,6 +165,33 @@ class TranslationManager:
             )
         else:
             raise ValueError(f"不支持的LLM提供商: {provider}")
+
+    def _sanitize_output(self, text: str) -> str:
+        """
+        清洗LLM输出，确保只保留译文内容，移除常见前缀/包裹。
+        """
+        try:
+            s = text.strip()
+            # 去除常见前缀标签
+            prefixes = [
+                "translation:", "translated:", "result:", "output:",
+                "译文:", "翻译:", "结果:", "输出:",
+                "Translation：", "译文：", "翻译：", "结果：", "输出："
+            ]
+            ls = s.lower()
+            for p in prefixes:
+                if ls.startswith(p):
+                    s = s[len(p):].lstrip()
+                    break
+            # 去除包裹的代码块或引号
+            if s.startswith('```') and s.endswith('```') and len(s) >= 6:
+                s = s.strip('`')
+                s = s.strip()
+            if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+                s = s[1:-1].strip()
+            return s
+        except Exception:
+            return text.strip()
     
     def _merge_chunks(self, chunks: List[str]) -> str:
         """
